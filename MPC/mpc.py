@@ -88,11 +88,9 @@ class LIPM_MPC:
     def __init__(self, dt, h, N):
         self.dt = dt
         self.h = h
-        self.N = N  # Horizon: Tầm nhìn trước (số steps)
+        self.N = N  #số steps)
         g = 9.81
-        
         # State-Space Matrix
-        # x = [Vị trí COM, Vận tốc COM, Gia tốc COM]
         self.A = np.array([
             [1.0,  dt, (dt**2)/2.0],
             [0.0, 1.0,          dt],
@@ -120,12 +118,10 @@ class LIPM_MPC:
                 A_pow = np.linalg.matrix_power(self.A, i-j)
                 val = self.C @ A_pow @ self.B
                 self.Pzu[i, j] = val[0, 0]
-                self.Pu[i*3:(i+1)*3, j] = (A_pow @ self.B).flatten()
-                
+                self.Pu[i*3:(i+1)*3, j] = (A_pow @ self.B).flatten()           
         # Cost Function
         self.Q = np.eye(N) * 1000.0  # Ưu tiên bám sát điểm ZMP mục tiêu
         self.R = np.eye(N) * 1e-5    # Hạn chế giật cục (Jerk)
-        
         # Ma trận Hessian cho QP
         self.H = 2.0 * (self.Pzu.T @ self.Q @ self.Pzu + self.R)
         self.H = sparse.csc_matrix(self.H) # OSQP yêu cầu ma trận thưa (sparse)
@@ -133,27 +129,21 @@ class LIPM_MPC:
     def solve(self, x0, z_ref, z_min, z_max):
         # x0: Trạng thái hiện tại [pos, vel, acc]
         Z_ref_vec = np.ones(self.N) * z_ref
-        
         # Gradient f
         f = 2.0 * self.Pzu.T @ self.Q @ (self.Pz @ x0 - Z_ref_vec)
-        
         #  ràng buộc: z_min <= zmp <= z_max
         G = np.vstack([self.Pzu, -self.Pzu])
         h_max = z_max - self.Pz @ x0
         h_min = -(z_min - self.Pz @ x0)
         h_bound = np.concatenate([h_max, h_min])
         G = sparse.csc_matrix(G)
-        
-        # Gọi bộ giải OSQP
+        # Gọi OSQP
         try:
             U = solve_qp(P=self.H, q=f, G=G, h=h_bound, solver="osqp")
         except:
             U = None
-
         if U is None:
-            U = np.zeros(self.N) # Nếu không tìm được nghiệm, giữ nguyên
-            
-        # Trả về trạng thái tối ưu cho Step tiếp theo
+            U = np.zeros(self.N) 
         x_next = self.A @ x0 + self.B @ np.array([U[0]])
         return x_next.flatten()
 # --- SCENE & XML GENERATOR ---
@@ -245,7 +235,7 @@ def selectRobot( vel, step_len, spno):
 
     print('mass=', humn.m, ' rCOM=', humn.r_com)
     print('o_left=', humn.o_left, 'o_right=', humn.o_right)
-
+    
     humn.xlimft = 0.5 
     humn.ylimft = abs(humn.o_left[1] - humn.o_right[1])   
     humn.Stlr = np.array([1, 0])
@@ -255,7 +245,6 @@ def selectRobot( vel, step_len, spno):
     humn.sspbydsp = 2
     humn.Tsip = 0  
     humn.cam_dist = 2
-    
     # Active Balancing Weights
     humn.COMctrl = 0.4   
     humn.ZMPctrl = 0.05  
@@ -367,11 +356,11 @@ class myRobot:
         self.Kv = Kv
         self.Ki = Ki
         # khởi tạo bộ đk mpc
-        dt = 0.0005  # Bằng với timestep của MuJoCo
+        dt = 0.0005  
         h_com = self.r_com[2] # Lấy chiều cao Trọng tâm ban đầu
-        N_horizon = 20        # Tầm nhìn trước 20 steps
+        N_horizon = 20        
         
-        # Cần 2 bộ giải độc lập cho Trục X (tiến lùi) và Trục Y (trái phải)
+        # 2 bộ giải độc lập cho trục x (tiến lùi) và trục y (trái phải)
         self.mpc_X = LIPM_MPC(dt, h_com, N_horizon)
         self.mpc_Y = LIPM_MPC(dt, h_com, N_horizon)
         
@@ -386,22 +375,17 @@ class myRobot:
         self.dqdes = np.zeros([model.nv])
         self.ddqdes = np.zeros([model.nv])
         
-        # 1. Cập nhật lực tiếp xúc và cảm biến
         self.mjfc(model, data)
-        # 2. Lấy quỹ đạo khớp tĩnh (Đứng im)
+        # Lấy quỹ đạo khớp tĩnh 
         for i in np.arange(0, model.nv):
             self.qdes[i] = self.qspl[i](data.time)
             self.dqdes[i] = self.qspl[i](data.time, 1)
-        # ========================================================
-        # 3. HIGH-LEVEL: MODEL PREDICTIVE CONTROL (MPC)
-        # ========================================================
-        # Khởi tạo bộ đếm để MPC chạy ở 100Hz (thay vì 2000Hz của MuJoCo)
-        # Giả sử timestep = 0.0005s (2000Hz) => 20 bước mô phỏng = 1 bước MPC
+ 
         if not hasattr(self, 'mpc_tick'):
             self.mpc_tick = 0
 
         if self.mpc_tick % 20 == 0:
-            # Lấy ZMP mục tiêu lý tưởng (nằm dưới rốn)
+           
             z_ref_x = self.oCPx(data.time)
             z_ref_y = self.oCPy(data.time)
             
@@ -409,28 +393,24 @@ class myRobot:
             z_min_x, z_max_x = z_ref_x - 0.05, z_ref_x + 0.05
             z_min_y, z_max_y = z_ref_y - 0.05, z_ref_y + 0.05
             
-            # Giải bài toán QP tìm Trạng thái Khối tâm tối ưu
+            # solve QP problem
             self.state_x = self.mpc_X.solve(self.state_x, z_ref_x, z_min_x, z_max_x)
             self.state_y = self.mpc_Y.solve(self.state_y, z_ref_y, z_min_y, z_max_y)
             
         self.mpc_tick += 1
         
-        # Cập nhật Trọng tâm mục tiêu (COM_des) từ kết quả của MPC
+    
         self.ocm_des = np.array([self.state_x[0], self.state_y[0], self.oCMz(data.time)])
-        # ========================================================
-
-        # 4. LOW-LEVEL: Tính toán Torque PID cơ bản
+       
         self.tau_PID = self.PIDcontrol(model, data)
 
-        # 5. MID-LEVEL: Bù trừ bằng Jacobian
-        # Lệnh này sẽ dùng self.ocm_des (vừa được MPC tính ra ở trên) để kéo các khớp
         if self.COMctrl > 0:
             self.tau_PID += self.COMcontrol(model, data)
             
         if self.ZMPctrl > 0:
             self.tau_PID += self.ZMPcontrol(model, data)
 
-        # 6. Xuất lệnh Torque ra động cơ
+        # Xuất lệnh Torque ra động cơ
         if self.posCTRL:
             self.tau = self.qdes[6:model.nv].copy()
         else:
