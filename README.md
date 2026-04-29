@@ -99,7 +99,8 @@ $$\Delta\mathbf{q}_{\text{ZMP}} = \mathbf{J}_{\text{rel}}^{+} \cdot \frac{k_{\te
 $$\tau_{\text{ZMP},i} = K_{p,i}\,(\Delta q_{\text{ZMP},i} \cdot \Delta t) + K_{v,i}\,\Delta q_{\text{ZMP},i}$$
 
 ### 4. Joint-Space PID Control 
-Calculates the final motor torque ($\tau$) needed to move the joints to the target positions and speeds:
+Calculates the final motor torque ($\tau$) needed to move the joints to the target positions and speeds: 
+
 $$\tau_{PID} = K_p (q_{des} - q) + K_v (\dot{q}_{des} - \dot{q}) + K_i \int (q_{des} - q) dt$$
 
 ### 5. Hierarchical Inverse Kinematics (IK)
