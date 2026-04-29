@@ -67,14 +67,20 @@ $$z_k = \mathbf{C}\,\mathbf{x}_k, \qquad \mathbf{C} = \begin{bmatrix} 1 & 0 & -\
 
 ### 2. Model Predictive Control (MPC) 
 MPC plans the optimal COM path by looking ahead $N$ steps ($N=20$). It ensures the ZMP stays safely inside the foot area. The robot is modeled as an inverted pendulum:
+
 $$x_{k+1} = A x_k + B u_k$$
 $$p_{ZMP} = C x_k = p - \frac{h}{g}a$$
-*(Where $x$ is position, velocity, and acceleration of the COM, $h$ is height, and $g$ is gravity).*
+
+(Where $x$ is position, velocity, and acceleration of the COM, $h$ is height, and $g$ is gravity).
 
 **Cost Function:** Minimizes the ZMP error and prevents sudden jerky movements ($u_k$):
+
 $$J = \sum_{i=1}^{N} \left( Q \| p_{ZMP, i} - p_{ZMP}^{ref} \|^2 + R \| u_i \|^2 \right)$$
+
 **Constraints:** ZMP must stay inside the support polygon (the feet):
+
 $$ZMP_{min} \le P_{ZMP, i} \le ZMP_{max}$$
+
 The `OSQP` solver runs at 100Hz to find the best COM state, which is then sent to the Jacobian controller.
 
 ### 3. COM & ZMP Jacobian Control 
