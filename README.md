@@ -7,7 +7,7 @@
 3. [Project Structure](#3-project-structure)
 4. [How to Run](#4-how-to-run)
 5. [Requirements](#5-requirements)
-6. [References](#6-References)
+6. [References](#6-references)
 
 
 ---
@@ -50,7 +50,16 @@ The discrete-time state equation with time step $\Delta t$ is:
 
 $$\mathbf{x}_{k+1} = \mathbf{A}\,\mathbf{x}_k + \mathbf{B}\,u_k$$
 
-$$\mathbf{A} = \begin{bmatrix} 1 & \Delta t & \dfrac{\Delta t^2}{2} \\[6pt] 0 & 1 & \Delta t \\[4pt] 0 & 0 & 1 \end{bmatrix}, \qquad \mathbf{B} = \begin{bmatrix} \dfrac{\Delta t^3}{6} \\[6pt] \dfrac{\Delta t^2}{2} \\[4pt] \Delta t \end{bmatrix}$$
+$$\mathbf{A} = \begin{bmatrix} 
+1 & \Delta t & \dfrac{\Delta t^2}{2} \\ 
+0 & 1 & \Delta t \\ 
+0 & 0 & 1 
+\end{bmatrix}, \qquad 
+\mathbf{B} = \begin{bmatrix} 
+\dfrac{\Delta t^3}{6} \\ 
+\dfrac{\Delta t^2}{2} \\ 
+\Delta t 
+\end{bmatrix}$$
 
 The ZMP output is:
 
